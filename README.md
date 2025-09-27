@@ -1,180 +1,60 @@
-# Gemini CLI (Go)
+# Gemini CLI Go Migration Plan
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![Gemini CLI E2E](https://github.com/google-gemini/gemini-cli/actions/workflows/e2e.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/e2e.yml)
-[![License](https://img.shields.io/github/license/google-gemini/gemini-cli)](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE)
+This document outlines the plan for migrating the Gemini CLI from TypeScript to Go.
 
-![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
+## Status
 
-Gemini CLI is an open-source AI agent that brings the power of Gemini directly into your terminal. It provides lightweight access to Gemini, giving you the most direct path from your prompt to our model.
+- [x] **In Progress**
+- [ ] **Complete**
 
-**Migration Notice:** This project is currently being migrated from NodeJS to Go. The original NodeJS application has been moved to the `legacy-nodejs` directory. This `README.md` describes the new Go-based Gemini CLI.
+## Migration Checklist
 
-## 🚀 Why Gemini CLI?
+### Core Functionality
 
-- **🎯 Free tier**: 60 requests/min and 1,000 requests/day with personal Google account
-- **🧠 Powerful Gemini 2.5 Pro**: Access to 1M token context window
-- **🔧 Built-in tools**: Google Search grounding, file operations, shell commands, web fetching
-- **🔌 Extensible**: MCP (Model Context Protocol) support for custom integrations
-- **💻 Terminal-first**: Designed for developers who live in the command line
-- **🛡️ Open source**: Apache 2.0 licensed
+| Feature | Status | Notes |
+| --- | --- | --- |
+| **Argument Parsing** | ✅ **Done** | Basic argument parsing is implemented using `cobra`. |
+| **Configuration Loading** | ✅ **Done** | Configuration loading from `settings.toml` (and deprecated `settings.json`) is implemented and tested. |
+| **Authentication** | 🚧 **In Progress** | `CloudShellAuthenticator` is implemented. `OAuth2Authenticator` is implemented but requires the `OAUTH_CLIENT_SECRET` environment variable to be set. |
+| **Interactive Mode (TUI)** | ❌ **Not Started** | This is a major component. We will likely need a library like `bubbletea` to build the TUI. |
+| **Non-Interactive Mode** | 🚧 **In Progress** | The core logic for handling single prompts is implemented. |
+| **Stdin Reading** | ❌ **Not Started** | Implement reading from stdin when input is piped to the CLI. |
+| **Command Execution** | 🚧 **In Progress** | The core logic for sending prompts to the Gemini API and handling the response is implemented. |
+| **Error Handling** | 🚧 **In Progress** | Basic error handling is in place. More robust error handling is needed. |
+| **Sandbox** | ❌ **Not Started** | Implement the sandboxed execution environment. |
+| **Update Checker** | ❌ **Not Started** | Implement a mechanism to check for new versions of the CLI. |
+| **Auto Update** | ❌ **NotStarted** | Implement a mechanism to automatically update the CLI. |
 
-## 📦 Installation
+### Commands
 
-### Quick Install
+| Command | Status | Notes |
+| --- | --- | --- |
+| `version` | ✅ **Done** | The `version` command is implemented. |
+| `extensions` | ❌ **Not Started** | Implement the `extensions` command for listing and managing extensions. |
+| `mcp` | ❌ **Not Started** | Implement the `mcp` command. |
 
-#### Install with `go install`
+### Other Features
 
+| Feature | Status | Notes |
+| --- | --- | --- |
+| **Zed Integration** | ❌ **Not Started** | Implement the integration with the Zed editor. |
+| **Window Title Management** | ❌ **Not Started** | Implement setting the terminal window title. |
+| **Memory Management** | ❌ **Not Started** | Implement memory management and relaunching with adjusted memory settings. |
+| **Startup Warnings** | ❌ **Not Started** | Implement displaying startup warnings. |
+| **Custom Themes** | ❌ **Not Started** | Implement support for custom themes. |
+| **Logging** | ❌ **Not Started** | Implement logging for debugging and auditing. |
+| **Kitty Keyboard Protocol** | ❌ **Not Started** | Implement support for the Kitty Keyboard Protocol. |
+| **Screen Reader Support** | ❌ **Not Started** | Ensure the CLI is accessible to screen readers. |
+
+## Testing
+
+A comprehensive test suite will be developed alongside the features. The goal is to have a high level of test coverage to ensure the stability and correctness of the Go CLI.
+
+Run tests with:
 ```bash
-go install github.com/google-gemini/gemini-cli-go@latest
+go test ./...
 ```
 
-#### System Requirements
+## Authentication
 
-- Go version 1.21 or higher
-- macOS, Linux, or Windows
-
-## 📋 Key Features
-
-### Code Understanding & Generation
-
-- Query and edit large codebases
-- Generate new apps from PDFs, images, or sketches using multimodal capabilities
-- Debug issues and troubleshoot with natural language
-
-### Automation & Integration
-
-- Automate operational tasks like querying pull requests or handling complex rebases
-- Use MCP servers to connect new capabilities, including [media generation with Imagen, Veo or Lyria](https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia)
-- Run non-interactively in scripts for workflow automation
-
-### Advanced Capabilities
-
-- Ground your queries with built-in [Google Search](https://ai.google.dev/gemini-api/docs/grounding) for real-time information
-- Conversation checkpointing to save and resume complex sessions
-- Custom context files (GEMINI.md) to tailor behavior for your projects
-
-### GitHub Integration
-
-Integrate Gemini CLI directly into your GitHub workflows with [**Gemini CLI GitHub Action**](https://github.com/google-github-actions/run-gemini-cli):
-
-- **Pull Request Reviews**: Automated code review with contextual feedback and suggestions
-- **Issue Triage**: Automated labeling and prioritization of GitHub issues based on content analysis
-- **On-demand Assistance**: Mention `@gemini-cli` in issues and pull requests for help with debugging, explanations, or task delegation
-- **Custom Workflows**: Build automated, scheduled and on-demand workflows tailored to your team's needs
-
-## 🔐 Authentication Options
-
-Choose the authentication method that best fits your needs:
-
-### Option 1: Login with Google (OAuth login using your Google Account)
-
-**✨ Best for:**
-
-- Individual developers.
-- Google AI Pro and AI Ultra subscribers.
-- Anyone who has a Gemini Code Assist license.
-
-_See [quota limits and terms of service](https://cloud.google.com/gemini/docs/quotas) for details._
-
-**Benefits:**
-
-- **Free tier** with 60 requests/min and 1,000 requests/day
-- **Gemini 2.5 Pro and Flash** with 1M token context window
-- **No API key management** - just sign in with your Google account. The required OAuth credentials are included in the application.
-- **Automatic updates** to our latest models
-
-#### Start Gemini CLI, then choose _Login with Google_ and follow the browser authentication flow when prompted
-
-```bash
-gemini-cli-go
-```
-
-#### If you are using a paid Code Assist License from your organization, remember to set the Google Cloud Project
-
-```bash
-# Set your Google Cloud Project
-export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_NAME"
-gemini-cli-go
-```
-
-### Option 2: Gemini API Key
-
-**✨ Best for:** Developers who need specific model control or paid tier access
-
-**Benefits:**
-
-- **Free tier**: 100 requests/day with Gemini 2.5 Pro
-- **Model selection**: Choose specific Gemini models
-- **Usage-based billing**: Upgrade for higher limits when needed
-
-```bash
-# Get your key from https://aistudio.google.com/apikey
-export GEMINI_API_KEY="YOUR_API_KEY"
-gemini-cli-go
-```
-
-### Option 3: Vertex AI
-
-**✨ Best for:** Enterprise teams and production workloads
-
-**Benefits:**
-
-- **Enterprise features**: Advanced security and compliance
-- **Scalable**: Higher rate limits with billing account
-- **Integration**: Works with existing Google Cloud infrastructure
-
-```bash
-# Get your key from Google Cloud Console
-export GOOGLE_API_KEY="YOUR_API_KEY"
-export GOOGLE_GENAI_USE_VERTEXAI=true
-gemini-cli-go
-```
-
-## 🚀 Getting Started
-
-### Basic Usage
-
-#### Start in current directory
-
-```bash
-gemini-cli-go
-```
-
-#### Non-interactive mode for scripts
-
-Get a simple text response:
-
-```bash
-gemini-cli-go -p "Explain the architecture of this codebase"
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Gemini CLI is fully open source (Apache 2.0), and we encourage the community to:
-
-- Report bugs and suggest features
-- Improve documentation
-- Submit code improvements
-
-See our [Contributing Guide](./CONTRIBUTING.md) for development setup, coding standards, and how to submit pull requests.
-
-Check our [Official Roadmap](https://github.com/orgs/google-gemini/projects/11/) for planned features and priorities.
-
-## 📖 Resources
-
-- **[Official Roadmap](./ROADMAP.md)** - See what's coming next
-- **[GitHub Issues](https://github.com/google-gemini/gemini-cli/issues)** - Report bugs or request features
-- **[Security Advisories](https://github.com/google-gemini/gemini-cli/security/advisories)** - Security updates
-
-## 📄 Legal
-
-- **License**: [Apache License 2.0](LICENSE)
-- **Terms of Service**: [Terms & Privacy](./docs/tos-privacy.md)
-- **Security**: [Security Policy](SECURITY.md)
-
----
-
-<p align="center">
-  Built with ❤️ by Google and the open source community
-</p>
+To use OAuth2 authentication, you must set the `OAUTH_CLIENT_SECRET` environment variable.
