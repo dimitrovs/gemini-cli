@@ -15,7 +15,7 @@ This document outlines the plan for migrating the Gemini CLI from TypeScript to 
 | --- | --- | --- |
 | **Argument Parsing** | ✅ **Done** | Basic argument parsing is implemented using `cobra`. |
 | **Configuration Loading** | ✅ **Done** | Configuration loading from `settings.toml` (and deprecated `settings.json`) is implemented and tested. |
-| **Authentication** | 🚧 **In Progress** | `CloudShellAuthenticator` is implemented. `OAuth2Authenticator` is implemented but requires the `OAUTH_CLIENT_SECRET` environment variable to be set. |
+| **Authentication** | ✅ **Done** | `CloudShellAuthenticator` and `OAuth2Authenticator` are implemented. |
 | **Interactive Mode (TUI)** | ❌ **Not Started** | This is a major component. We will likely need a library like `bubbletea` to build the TUI. |
 | **Non-Interactive Mode** | 🚧 **In Progress** | The core logic for handling single prompts is implemented. |
 | **Stdin Reading** | ❌ **Not Started** | Implement reading from stdin when input is piped to the CLI. |
@@ -54,7 +54,3 @@ Run tests with:
 ```bash
 go test ./...
 ```
-
-## Authentication
-
-To use OAuth2 authentication, you must set the `OAUTH_CLIENT_SECRET` environment variable.

@@ -3,15 +3,15 @@ package auth
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/google-gemini/gemini-cli-go/pkg/config"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 const (
-	oauthClientID = "733539399381-m8v23olicibo1l58g2hgsn0bh3f3a47a.apps.googleusercontent.com"
-  oauthClientSecret = "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"
+	oauthClientID     = "733539399381-m8v23olicibo1l58g2hgsn0bh3f3a47a.apps.googleusercontent.com"
+	oauthClientSecret = "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"
 )
 
 // Authenticator is the interface for different authentication methods.
@@ -23,9 +23,26 @@ type Authenticator interface {
 
 // NewAuthenticator returns a new authenticator based on the provided type.
 func NewAuthenticator(authType string) (Authenticator, error) {
+	settings, err := config.Load()
+	if err != nil {
+		settings = &config.Settings{}
+	}
+
+	var token *oauth2.Token
+	if settings.Security != nil && settings.Security.Auth != nil {
+		token = settings.Security.Auth.Token
+	}
+
 	switch authType {
 	case "oauth2":
-		return &OAuth2Authenticator{}, nil
+		conf := &oauth2.Config{
+			ClientID:     oauthClientID,
+			ClientSecret: oauthClientSecret,
+			RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
+			Scopes:       []string{"https://www.googleapis.com/auth/cloud-platform"},
+			Endpoint:     google.Endpoint,
+		}
+		return &OAuth2Authenticator{config: conf, token: token}, nil
 	case "cloud-shell":
 		return &CloudShellAuthenticator{}, nil
 	default:
@@ -41,15 +58,6 @@ type OAuth2Authenticator struct {
 
 // Authenticate performs OAuth2 authentication.
 func (a *OAuth2Authenticator) Authenticate() error {
-
-	a.config = &oauth2.Config{
-		ClientID:     oauthClientID,
-		ClientSecret: oauthClientSecret,
-		RedirectURL:  "urn:ietf:wg:oauth:2.0:oob",
-		Scopes:       []string{"https://www.googleapis.com/auth/cloud-platform"},
-		Endpoint:     google.Endpoint,
-	}
-
 	authURL := a.config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser:\n\n%s\n\n", authURL)
 	fmt.Print("Enter verification code: ")
@@ -65,14 +73,37 @@ func (a *OAuth2Authenticator) Authenticate() error {
 	}
 
 	a.token = token
+	if err := saveTokenToConfig(token); err != nil {
+		return err
+	}
 	return nil
 }
 
 // GetToken returns the OAuth2 token.
 func (a *OAuth2Authenticator) GetToken() (string, error) {
 	if a.token == nil {
-		return "", fmt.Errorf("not authenticated")
+		if err := a.Authenticate(); err != nil {
+			return "", err
+		}
+		return a.token.AccessToken, nil
 	}
+
+	tokenSource := a.config.TokenSource(context.Background(), a.token)
+	newToken, err := tokenSource.Token()
+	if err != nil {
+		if err := a.Authenticate(); err != nil {
+			return "", err
+		}
+		return a.token.AccessToken, nil
+	}
+
+	if newToken.AccessToken != a.token.AccessToken {
+		a.token = newToken
+		if err := saveTokenToConfig(newToken); err != nil {
+			// Log this error, but we can still proceed.
+		}
+	}
+
 	return a.token.AccessToken, nil
 }
 
@@ -99,8 +130,29 @@ func (a *CloudShellAuthenticator) Authenticate() error {
 
 // GetToken returns the Cloud Shell token.
 func (a *CloudShellAuthenticator) GetToken() (string, error) {
+	if err := a.Authenticate(); err != nil {
+		return "", err
+	}
 	if a.token == nil {
-		return "", fmt.Errorf("not authenticated")
+		return "", fmt.Errorf("authentication failed to produce a token")
 	}
 	return a.token.AccessToken, nil
+}
+
+func saveTokenToConfig(token *oauth2.Token) error {
+	userSettings, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load user settings: %w", err)
+	}
+	if userSettings.Security == nil {
+		userSettings.Security = &config.SecuritySettings{}
+	}
+	if userSettings.Security.Auth == nil {
+		userSettings.Security.Auth = &config.AuthSettings{}
+	}
+	userSettings.Security.Auth.Token = token
+	if err := config.SaveUserSettings(userSettings); err != nil {
+		return fmt.Errorf("failed to save user settings with token: %w", err)
+	}
+	return nil
 }

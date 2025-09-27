@@ -131,3 +131,39 @@ func mergeSettings(base, override *Settings) *Settings {
 
 	return base
 }
+
+// SaveUserSettings saves the provided settings to the user's settings file.
+func SaveUserSettings(settings *Settings) error {
+	homeDir, err := userHomeDir()
+	if err != nil {
+		return err
+	}
+
+	configDir := filepath.Join(homeDir, settingsDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	configPath := filepath.Join(configDir, settingsFileName)
+
+	file, err := os.Create(configPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := toml.NewEncoder(file)
+	return encoder.Encode(settings)
+}
+
+// SetUserHomeDirForTesting sets the user home directory for testing purposes
+// and returns a function to restore the original value.
+func SetUserHomeDirForTesting(dir string, err error) func() {
+	original := userHomeDir
+	userHomeDir = func() (string, error) {
+		return dir, err
+	}
+	return func() {
+		userHomeDir = original
+	}
+}
