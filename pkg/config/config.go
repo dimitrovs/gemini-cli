@@ -1,5 +1,7 @@
 package config
 
+import "golang.org/x/oauth2"
+
 // Settings represents the top-level configuration structure.
 type Settings struct {
 	General      *GeneralSettings      `json:"general,omitempty"`
@@ -156,9 +158,10 @@ type FolderTrustSettings struct {
 
 // AuthSettings represents the authentication settings.
 type AuthSettings struct {
-	SelectedType string `json:"selectedType,omitempty"`
-	EnforcedType string `json:"enforcedType,omitempty"`
-	UseExternal  bool   `json:"useExternal,omitempty"`
+	SelectedType string        `json:"selectedType,omitempty"`
+	EnforcedType string        `json:"enforcedType,omitempty"`
+	UseExternal  bool          `json:"useExternal,omitempty"`
+	Token        *oauth2.Token `json:"token,omitempty"`
 }
 
 // AdvancedSettings represents the advanced settings for power users.
