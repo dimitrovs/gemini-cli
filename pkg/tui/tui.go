@@ -12,14 +12,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google-gemini/gemini-cli-go/pkg/auth"
 	"github.com/google-gemini/gemini-cli-go/pkg/config"
+	"github.com/google-gemini/gemini-cli-go/pkg/updatechecker"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
 type (
-	errMsg         error
-	responseMsg    string
-	conversation []string
+	errMsg             error
+	responseMsg        string
+	conversation       []string
+	UpdateAvailableMsg *updatechecker.ReleaseInfo
 )
 
 type model struct {
@@ -31,9 +33,10 @@ type model struct {
 	client        *genai.GenerativeModel
 	convo         conversation
 	err           error
+	updateInfo    *updatechecker.ReleaseInfo
 }
 
-func initialModel() model {
+func InitialModel() model {
 	ta := textarea.New()
 	ta.Placeholder = "Send a message..."
 	ta.Focus()
@@ -55,9 +58,9 @@ func initialModel() model {
 	return model{
 		textarea:      ta,
 		viewport:      vp,
-		senderStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("5")),   // Purple
-		responseStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("2")),   // Green
-		errorStyle:    lipgloss.NewStyle().Foreground(lipgloss.Color("1")),   // Red
+		senderStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("5")), // Purple
+		responseStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("2")), // Green
+		errorStyle:    lipgloss.NewStyle().Foreground(lipgloss.Color("1")), // Red
 		convo:         make(conversation, 0),
 	}
 }
@@ -96,12 +99,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.Width = msg.Width
 		m.viewport.Height = msg.Height - m.textarea.Height() - 2 // Account for textarea and gap
 		m.textarea.SetWidth(msg.Width)
+		if m.updateInfo != nil {
+			m.viewport.Height-- // Make space for the update message
+		}
 		return m, nil
 
 	case responseMsg:
 		m.convo = append(m.convo, m.responseStyle.Render("Gemini: ")+string(msg))
 		m.viewport.SetContent(strings.Join(m.convo, "\n"))
 		m.viewport.GotoBottom()
+		return m, nil
+
+	case UpdateAvailableMsg:
+		m.updateInfo = msg
+		m.viewport.Height-- // Make space for the update message
 		return m, nil
 
 	case errMsg:
@@ -123,11 +134,23 @@ func (m model) View() string {
 		// Don't render the text area on error
 		return m.viewport.View()
 	}
-	return fmt.Sprintf(
+
+	mainView := fmt.Sprintf(
 		"%s\n\n%s",
 		m.viewport.View(),
 		m.textarea.View(),
 	)
+
+	if m.updateInfo != nil {
+		updateMessage := fmt.Sprintf(
+			"Update available! %s -> %s. To update, run: go install github.com/google-gemini/gemini-cli-go@latest",
+			updatechecker.CurrentVersion,
+			m.updateInfo.Version,
+		)
+		mainView += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(updateMessage)
+	}
+
+	return mainView
 }
 
 func (c conversation) String() string {
@@ -198,13 +221,9 @@ func (m *model) send(prompt string) tea.Cmd {
 	}
 }
 
-func Start() {
-	// We are disabling the alt screen buffer for now to allow users to scroll
-	// back and see the conversation history after the application exits.
-	// This can be re-enabled if we add a "copy to clipboard" feature.
-	p := tea.NewProgram(initialModel())
-
-	if err := p.Start(); err != nil {
+// Start is a convenience function to run the TUI.
+func Start(p *tea.Program) {
+	if _, err := p.Run(); err != nil {
 		log.Fatalf("Alas, there's been an error: %v", err)
 	}
 }
