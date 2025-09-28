@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/google-gemini/gemini-cli-go/pkg/auth"
 	"github.com/google-gemini/gemini-cli-go/pkg/config"
+	"github.com/google-gemini/gemini-cli-go/pkg/noninteractive"
 	"github.com/google-gemini/gemini-cli-go/pkg/tui"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -19,11 +21,20 @@ var rootCmd = &cobra.Command{
 	Short: "A CLI for interacting with the Gemini API",
 	Long:  `A command-line interface for Google's Gemini API.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Non-interactive mode is triggered by providing args, or the --prompt flag
 		prompt, _ := cmd.Flags().GetString("prompt")
+		if prompt == "" && len(args) > 0 {
+			prompt = strings.Join(args, " ")
+		}
+
 		if prompt == "" {
+			// No prompt, start the interactive TUI
 			tui.Start()
 			return nil
 		}
+
+		// Proceed with non-interactive mode
+		ctx := context.Background()
 
 		// Load configuration
 		cfg, err := config.Load()
@@ -43,7 +54,6 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 		if err := authenticator.Authenticate(); err != nil {
-			// We can't proceed without auth in non-interactive mode
 			return fmt.Errorf("authentication failed: %w", err)
 		}
 		token, err := authenticator.GetToken()
@@ -61,36 +71,25 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Create the client
-		ctx := context.Background()
 		client, err := genai.NewClient(ctx, option.WithAPIKey(token))
 		if err != nil {
 			return fmt.Errorf("failed to create client: %w", err)
 		}
 		defer client.Close()
 
-		// Send the prompt
 		model := client.GenerativeModel(modelName)
-		resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-		if err != nil {
-			return fmt.Errorf("failed to generate content: %w", err)
-		}
 
-		// Print the response
-		for _, cand := range resp.Candidates {
-			for _, part := range cand.Content.Parts {
-				if txt, ok := part.(genai.Text); ok {
-					fmt.Println(txt)
-				}
-			}
-		}
+		// Get output format
+		outputFormat, _ := cmd.Flags().GetString("output-format")
 
-		return nil
+		// Call the new non-interactive runner
+		return noninteractive.Run(ctx, cfg, model, prompt, outputFormat)
 	},
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
