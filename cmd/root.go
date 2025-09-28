@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -25,6 +26,18 @@ var rootCmd = &cobra.Command{
 		prompt, _ := cmd.Flags().GetString("prompt")
 		if prompt == "" && len(args) > 0 {
 			prompt = strings.Join(args, " ")
+		}
+
+		if prompt == "" {
+			// If no prompt is provided, check for stdin
+			stat, _ := os.Stdin.Stat()
+			if (stat.Mode() & os.ModeNamedPipe) != 0 {
+				bytes, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					return fmt.Errorf("failed to read from stdin: %w", err)
+				}
+				prompt = string(bytes)
+			}
 		}
 
 		if prompt == "" {

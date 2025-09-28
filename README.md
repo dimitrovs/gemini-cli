@@ -18,7 +18,7 @@ This document outlines the plan for migrating the Gemini CLI from TypeScript to 
 | **Authentication** | ✅ **Done** | `CloudShellAuthenticator` and `OAuth2Authenticator` are implemented. |
 | **Interactive Mode (TUI)** | ✅ **Done** | Migrated to Go using `bubbletea`. |
 | **Non-Interactive Mode** | ✅ **Done** | The core logic for handling single prompts, streaming, and multi-turn conversations is implemented and tested. |
-| **Stdin Reading** | ❌ **Not Started** | Implement reading from stdin when input is piped to the CLI. |
+| **Stdin Reading** | ✅ **Done** | Implemented reading from stdin when input is piped to the CLI. |
 | **Command Execution** | ✅ **Done** | The core logic for sending prompts to the Gemini API, handling streaming responses, and executing tool calls is implemented. |
 | **Error Handling** | 🚧 **In Progress** | Basic error handling is in place. More robust error handling is needed. |
 | **Sandbox** | ❌ **Not Started** | Implement the sandboxed execution environment. |
