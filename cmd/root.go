@@ -7,6 +7,7 @@ import (
 
 	"github.com/google-gemini/gemini-cli-go/pkg/auth"
 	"github.com/google-gemini/gemini-cli-go/pkg/config"
+	"github.com/google-gemini/gemini-cli-go/pkg/tui"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 
@@ -20,8 +21,8 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		prompt, _ := cmd.Flags().GetString("prompt")
 		if prompt == "" {
-			// If no prompt, just show help (for now)
-			return cmd.Help()
+			tui.Start()
+			return nil
 		}
 
 		// Load configuration
