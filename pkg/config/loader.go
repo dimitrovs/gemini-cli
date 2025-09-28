@@ -3,6 +3,7 @@ package config
 import (
 	"dario.cat/mergo"
 	"encoding/json"
+	"golang.org/x/oauth2"
 	"os"
 	"path/filepath"
 
@@ -154,6 +155,57 @@ func SaveUserSettings(settings *Settings) error {
 
 	encoder := toml.NewEncoder(file)
 	return encoder.Encode(settings)
+}
+
+const oauthCredsFileName = "oauth_creds.json"
+
+// LoadToken loads the OAuth2 token from the dedicated credentials file.
+func LoadToken() (*oauth2.Token, error) {
+	homeDir, err := userHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	tokenPath := filepath.Join(homeDir, settingsDirName, oauthCredsFileName)
+
+	if _, err := os.Stat(tokenPath); os.IsNotExist(err) {
+		return nil, nil // No token file, not an error
+	}
+
+	file, err := os.ReadFile(tokenPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var token oauth2.Token
+	if err := json.Unmarshal(file, &token); err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+// SaveToken saves the OAuth2 token to the dedicated credentials file.
+func SaveToken(token *oauth2.Token) error {
+	homeDir, err := userHomeDir()
+	if err != nil {
+		return err
+	}
+
+	configDir := filepath.Join(homeDir, settingsDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return err
+	}
+
+	tokenPath := filepath.Join(configDir, oauthCredsFileName)
+	file, err := os.Create(tokenPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(token)
 }
 
 // SetUserHomeDirForTesting sets the user home directory for testing purposes

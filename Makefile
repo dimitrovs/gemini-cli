@@ -1,59 +1,42 @@
-# Makefile for gemini-cli
+# Makefile for gemini-cli-go
 
-.PHONY: help install build build-sandbox build-all test lint format preflight clean start debug release run-npx create-alias
+.PHONY: help install build test lint format clean start run
+
+BINARY_NAME=gemini-cli
 
 help:
-	@echo "Makefile for gemini-cli"
+	@echo "Makefile for gemini-cli-go"
 	@echo ""
 	@echo "Usage:"
-	@echo "  make install          - Install npm dependencies"
-	@echo "  make build            - Build the main project"
-	@echo "  make build-all        - Build the main project and sandbox"
+	@echo "  make install          - Install Go dependencies"
+	@echo "  make build            - Build the Go project"
 	@echo "  make test             - Run the test suite"
 	@echo "  make lint             - Lint the code"
 	@echo "  make format           - Format the code"
-	@echo "  make preflight        - Run formatting, linting, and tests"
 	@echo "  make clean            - Remove generated files"
-	@echo "  make start            - Start the Gemini CLI"
-	@echo "  make debug            - Start the Gemini CLI in debug mode"
-	@echo ""
-	@echo "  make run-npx          - Run the CLI using npx (for testing the published package)"
-	@echo "  make create-alias     - Create a 'gemini' alias for your shell"
+	@echo "  make start            - Run the Gemini CLI"
+	@echo "  make run              - Run the Gemini CLI (alias for start)"
+
 
 install:
-	npm install
+	go mod tidy
 
 build:
-	npm run build
-
-
-build-all:
-	npm run build:all
+	go build -o $(BINARY_NAME) .
 
 test:
-	npm run test
+	go test ./...
 
 lint:
-	npm run lint
+	go vet ./...
 
 format:
-	npm run format
-
-preflight:
-	npm run preflight
+	go fmt ./...
 
 clean:
-	npm run clean
+	rm -f $(BINARY_NAME)
 
 start:
-	npm run start
+	go run main.go
 
-debug:
-	npm run debug
-
-
-run-npx:
-	npx https://github.com/google-gemini/gemini-cli
-
-create-alias:
-	scripts/create_alias.sh
+run: start

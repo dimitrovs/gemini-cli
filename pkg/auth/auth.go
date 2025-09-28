@@ -24,17 +24,14 @@ type Authenticator interface {
 	GetToken() (string, error)
 }
 
-// NewAuthenticator returns a new authenticator based on the provided type.
-func NewAuthenticator(authType string) (Authenticator, error) {
-	settings, err := config.Load()
+// NewAuthenticator returns a new authenticator and a boolean indicating if a cached token was found.
+func NewAuthenticator(authType string) (Authenticator, bool, error) {
+	token, err := config.LoadToken()
 	if err != nil {
-		settings = &config.Settings{}
+		return nil, false, fmt.Errorf("failed to load token: %w", err)
 	}
 
-	var token *oauth2.Token
-	if settings.Security != nil && settings.Security.Auth != nil {
-		token = settings.Security.Auth.Token
-	}
+	hasCachedToken := token != nil
 
 	switch authType {
 	case "oauth2":
@@ -45,11 +42,11 @@ func NewAuthenticator(authType string) (Authenticator, error) {
 			Scopes:       []string{"https://www.googleapis.com/auth/cloud-platform"},
 			Endpoint:     google.Endpoint,
 		}
-		return &OAuth2Authenticator{config: conf, token: token}, nil
+		return &OAuth2Authenticator{config: conf, token: token}, hasCachedToken, nil
 	case "cloud-shell":
-		return &CloudShellAuthenticator{}, nil
+		return &CloudShellAuthenticator{}, false, nil
 	default:
-		return nil, fmt.Errorf("unsupported authentication type: %s", authType)
+		return nil, false, fmt.Errorf("unsupported authentication type: %s", authType)
 	}
 }
 
@@ -92,7 +89,7 @@ func (a *OAuth2Authenticator) Authenticate() error {
 	}
 
 	a.token = token
-	if err := saveTokenToConfig(token); err != nil {
+	if err := config.SaveToken(token); err != nil {
 		return err
 	}
 	return nil
@@ -118,7 +115,7 @@ func (a *OAuth2Authenticator) GetToken() (string, error) {
 
 	if newToken.AccessToken != a.token.AccessToken {
 		a.token = newToken
-		if err := saveTokenToConfig(newToken); err != nil {
+		if err := config.SaveToken(newToken); err != nil {
 			// Log this error, but we can still proceed.
 		}
 	}
@@ -156,22 +153,4 @@ func (a *CloudShellAuthenticator) GetToken() (string, error) {
 		return "", fmt.Errorf("authentication failed to produce a token")
 	}
 	return a.token.AccessToken, nil
-}
-
-func saveTokenToConfig(token *oauth2.Token) error {
-	userSettings, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("failed to load user settings: %w", err)
-	}
-	if userSettings.Security == nil {
-		userSettings.Security = &config.SecuritySettings{}
-	}
-	if userSettings.Security.Auth == nil {
-		userSettings.Security.Auth = &config.AuthSettings{}
-	}
-	userSettings.Security.Auth.Token = token
-	if err := config.SaveUserSettings(userSettings); err != nil {
-		return fmt.Errorf("failed to save user settings with token: %w", err)
-	}
-	return nil
 }
