@@ -9,7 +9,7 @@ import (
 
 // TestInitialModel ensures the TUI starts with the correct initial state.
 func TestInitialModel(t *testing.T) {
-	m := initialModel()
+	m := InitialModel()
 	if !strings.Contains(m.viewport.View(), "Welcome to the Gemini CLI!") {
 		t.Errorf("Initial view does not contain welcome message")
 	}
@@ -21,7 +21,7 @@ func TestInitialModel(t *testing.T) {
 
 // TestQuitMessage ensures the TUI quits on "ctrl+c".
 func TestQuitMessage(t *testing.T) {
-	m := initialModel()
+	m := InitialModel()
 	msg := tea.KeyMsg{Type: tea.KeyCtrlC}
 	_, cmd := m.Update(msg)
 
@@ -37,7 +37,7 @@ func TestQuitMessage(t *testing.T) {
 
 // TestUserInputAndDisplay tests that user input is added to the conversation.
 func TestUserInputAndDisplay(t *testing.T) {
-	m := initialModel()
+	m := InitialModel()
 	testInput := "Hello, Gemini!"
 	m.textarea.SetValue(testInput)
 

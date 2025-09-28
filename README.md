@@ -21,9 +21,9 @@ This document outlines the plan for migrating the Gemini CLI from TypeScript to 
 | **Stdin Reading** | ✅ **Done** | Implemented reading from stdin when input is piped to the CLI. |
 | **Command Execution** | ✅ **Done** | The core logic for sending prompts to the Gemini API, handling streaming responses, and executing tool calls is implemented. |
 | **Error Handling** | 🚧 **In Progress** | Basic error handling is in place. More robust error handling is needed. |
-| **Sandbox** | ❌ **Not Started** | Implement the sandboxed execution environment. |
-| **Update Checker** | ❌ **Not Started** | Implement a mechanism to check for new versions of the CLI. |
-| **Auto Update** | ❌ **NotStarted** | Implement a mechanism to automatically update the CLI. |
+| **Sandbox** | ✅ **Done** | Implemented using `docker`, `podman`, and `sandbox-exec` on macOS. |
+| **Update Checker** | ✅ **Done** | Checks for new releases on GitHub and displays a notification in the TUI. |
+| **Auto Update** | ❌ **Not Started** | Implement a mechanism to automatically update the CLI. |
 
 ### Commands
 

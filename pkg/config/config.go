@@ -112,6 +112,7 @@ type FileFilteringSettings struct {
 // ToolsSettings represents the settings for built-in and custom tools.
 type ToolsSettings struct {
 	Sandbox                     any            `json:"sandbox,omitempty"` // bool or string
+	SandboxImage                string         `json:"sandboxImage,omitempty"`
 	Shell                       *ShellSettings `json:"shell,omitempty"`
 	AutoAccept                  bool           `json:"autoAccept,omitempty"`
 	Core                        []string       `json:"core,omitempty"`
