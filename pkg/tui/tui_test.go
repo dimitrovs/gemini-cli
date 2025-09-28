@@ -7,15 +7,53 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// TestInitialModel ensures the TUI starts with the correct initial state.
-func TestInitialModel(t *testing.T) {
+// TestInitialView verifies the TUI starts with the correct initial state.
+func TestInitialView(t *testing.T) {
 	m := InitialModel()
-	if !strings.Contains(m.viewport.View(), "Welcome to the Gemini CLI!") {
-		t.Errorf("Initial view does not contain welcome message")
+	view := m.View()
+
+	if !strings.Contains(view, "Tips for getting started:") {
+		t.Errorf("Initial view does not contain the welcome tips")
 	}
 
 	if m.textarea.Value() != "" {
 		t.Errorf("Initial textarea should be empty")
+	}
+}
+
+// TestUserInputAndDisplay tests that the view transitions correctly
+// from the initial screen to the conversation view.
+func TestUserInputAndDisplay(t *testing.T) {
+	m := InitialModel()
+	testInput := "Hello, Gemini!"
+
+	// 1. Check that the initial view is showing.
+	initialView := m.View()
+	if !strings.Contains(initialView, "Tips for getting started:") {
+		t.Fatal("Test setup failed: Initial view does not contain the welcome tips")
+	}
+
+	// 2. Simulate user input and update the model.
+	m.textarea.SetValue(testInput)
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(model) // Assert type to access model fields
+
+	// 3. Get the new view after the update.
+	conversationView := m.View()
+
+	// 4. Check that the conversation view contains the user's input.
+	if !strings.Contains(conversationView, "You: "+testInput) {
+		t.Errorf("Conversation view does not contain user input")
+	}
+
+	// 5. Check that the conversation view no longer contains the initial tips.
+	if strings.Contains(conversationView, "Tips for getting started:") {
+		t.Errorf("Conversation view should not contain the welcome tips")
+	}
+
+	// 6. Check that the textarea was cleared after sending.
+	if m.textarea.Value() != "" {
+		t.Errorf("Textarea was not cleared after sending message")
 	}
 }
 
@@ -27,30 +65,5 @@ func TestQuitMessage(t *testing.T) {
 
 	if cmd == nil {
 		t.Errorf("Expected a quit command, but got nil")
-	}
-
-	// tea.Quit is a function, so we can't directly compare it.
-	// A common way to test this is to check if the returned command is non-nil
-	// when a quit event is triggered. For a more robust test, one might
-	// need to use a custom test runner, but this is sufficient for now.
-}
-
-// TestUserInputAndDisplay tests that user input is added to the conversation.
-func TestUserInputAndDisplay(t *testing.T) {
-	m := InitialModel()
-	testInput := "Hello, Gemini!"
-	m.textarea.SetValue(testInput)
-
-	msg := tea.KeyMsg{Type: tea.KeyEnter}
-	newModel, _ := m.Update(msg)
-
-	// Check if the input was added to the conversation history
-	if !strings.Contains(newModel.(model).viewport.View(), "You: "+testInput) {
-		t.Errorf("Viewport does not contain user input after sending")
-	}
-
-	// Check if the textarea was cleared
-	if newModel.(model).textarea.Value() != "" {
-		t.Errorf("Textarea was not cleared after sending")
 	}
 }

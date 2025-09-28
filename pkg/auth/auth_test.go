@@ -28,27 +28,20 @@ func TestNewAuthenticator_WithSavedToken(t *testing.T) {
 		RefreshToken: "test-refresh-token",
 		Expiry:       time.Now().Add(1 * time.Hour),
 	}
-	settings := &config.Settings{
-		Security: &config.SecuritySettings{
-			Auth: &config.AuthSettings{
-				Token: token,
-			},
-		},
-	}
-	if err := config.SaveUserSettings(settings); err != nil {
-		t.Fatalf("Failed to save user settings: %v", err)
+	if err := config.SaveToken(token); err != nil {
+		t.Fatalf("Failed to save token: %v", err)
 	}
 
-	auth, err := NewAuthenticator("oauth2")
+	auth, hasCachedToken, err := NewAuthenticator("oauth2")
 	if err != nil {
 		t.Fatalf("Expected no error from NewAuthenticator, but got %v", err)
 	}
 
-	oauth2Auth, ok := auth.(*OAuth2Authenticator)
-	if !ok {
-		t.Fatalf("Expected OAuth2Authenticator, but got %T", auth)
+	if !hasCachedToken {
+		t.Error("Expected hasCachedToken to be true, but it was false")
 	}
 
+	oauth2Auth := auth.(*OAuth2Authenticator)
 	if oauth2Auth.token.AccessToken != token.AccessToken {
 		t.Errorf("Expected access token to be '%s', but got '%s'", token.AccessToken, oauth2Auth.token.AccessToken)
 	}
@@ -101,11 +94,11 @@ func TestOAuth2Authenticator_GetToken_RefreshToken(t *testing.T) {
 	}
 
 	// Verify that the new token was saved
-	loadedSettings, err := config.Load()
+	loadedToken, err := config.LoadToken()
 	if err != nil {
-		t.Fatalf("Failed to load settings: %v", err)
+		t.Fatalf("Failed to load token: %v", err)
 	}
-	if loadedSettings.Security.Auth.Token.AccessToken != "new-access-token" {
+	if loadedToken.AccessToken != "new-access-token" {
 		t.Errorf("Expected saved token to be updated, but it was not.")
 	}
 }
