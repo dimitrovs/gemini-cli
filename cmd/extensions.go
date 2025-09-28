@@ -76,15 +76,3 @@ var extensionsNewCmd = &cobra.Command{
 		fmt.Println("extensions new command")
 	},
 }
-
-func init() {
-	rootCmd.AddCommand(extensionsCmd)
-	extensionsCmd.AddCommand(extensionsInstallCmd)
-	extensionsCmd.AddCommand(extensionsUninstallCmd)
-	extensionsCmd.AddCommand(extensionsListCmd)
-	extensionsCmd.AddCommand(extensionsUpdateCmd)
-	extensionsCmd.AddCommand(extensionsDisableCmd)
-	extensionsCmd.AddCommand(extensionsEnableCmd)
-	extensionsCmd.AddCommand(extensionsLinkCmd)
-	extensionsCmd.AddCommand(extensionsNewCmd)
-}

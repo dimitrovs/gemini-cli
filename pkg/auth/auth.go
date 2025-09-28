@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"github.com/google-gemini/gemini-cli-go/pkg/config"
 
@@ -10,7 +13,7 @@ import (
 )
 
 const (
-	oauthClientID     = "733539399381-m8v23olicibo1l58g2hgsn0bh3f3a47a.apps.googleusercontent.com"
+	oauthClientID     = "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com"
 	oauthClientSecret = "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"
 )
 
@@ -58,7 +61,21 @@ type OAuth2Authenticator struct {
 
 // Authenticate performs OAuth2 authentication.
 func (a *OAuth2Authenticator) Authenticate() error {
-	authURL := a.config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	// Generate code verifier
+	verifierBytes := make([]byte, 32)
+	if _, err := rand.Read(verifierBytes); err != nil {
+		return fmt.Errorf("failed to generate random bytes for code verifier: %w", err)
+	}
+	codeVerifier := base64.RawURLEncoding.EncodeToString(verifierBytes)
+
+	// Generate code challenge
+	challengeBytes := sha256.Sum256([]byte(codeVerifier))
+	codeChallenge := base64.RawURLEncoding.EncodeToString(challengeBytes[:])
+
+	authURL := a.config.AuthCodeURL("state-token", oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
 	fmt.Printf("Go to the following link in your browser:\n\n%s\n\n", authURL)
 	fmt.Print("Enter verification code: ")
 
@@ -67,7 +84,9 @@ func (a *OAuth2Authenticator) Authenticate() error {
 		return fmt.Errorf("failed to read authorization code: %w", err)
 	}
 
-	token, err := a.config.Exchange(context.Background(), code)
+	token, err := a.config.Exchange(context.Background(), code,
+		oauth2.SetAuthURLParam("code_verifier", codeVerifier),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to exchange token: %w", err)
 	}
